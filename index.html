@@ -47,6 +47,15 @@
       color: #7dd3fc; /* bright accent, visible on additive display */
       min-height: 28px;
       text-align: center;
+      transition: color 150ms ease;
+    }
+
+    body.result-success #status {
+      color: #4ade80; /* bright green flash on success */
+    }
+
+    body.result-failure #status {
+      color: #f87171; /* bright red flash on failure */
     }
 
     .focusable {
@@ -79,6 +88,7 @@
 
     const statusEl = document.getElementById('status');
     const pingButton = document.getElementById('pingButton');
+    let isPinging = false;
 
     // Focus the only interactive element immediately so a D-pad "select"
     // works right away without needing an extra navigation step first.
@@ -87,13 +97,27 @@
     });
 
     async function doPing() {
+      // Guard against overlapping calls — a D-pad "select" can otherwise
+      // fire this multiple times in quick succession (key repeat, or a
+      // native tap/pinch triggering both a click and our Enter handler),
+      // which makes the result flicker between states too fast to read.
+      if (isPinging) return;
+      isPinging = true;
+
+      document.body.classList.remove('result-success', 'result-failure');
       statusEl.textContent = 'Pinging...';
       try {
         const response = await fetch(PING_URL);
         const text = await response.text();
         statusEl.textContent = 'Got: ' + text;
+        document.body.classList.add('result-success');
       } catch (err) {
         statusEl.textContent = 'Failed: ' + err.message;
+        document.body.classList.add('result-failure');
+      } finally {
+        // Keep the result on screen for a moment before allowing another
+        // ping, so a stray repeat keypress can't immediately wipe it.
+        setTimeout(() => { isPinging = false; }, 1200);
       }
     }
 
