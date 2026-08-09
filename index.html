@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=600, height=600, initial-scale=1.0, user-scalable=no">
+  <!-- A brief description of your app -->
+  <meta name="description" content="Ping test for the Glasses Hello native bridge">
+  <!-- Identify your web app as MRBD-compatible -->
+  <meta name="mrbd-web-app-capable" content="yes">
+  <title>Glasses Hello - Ping Test</title>
+  <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 600px;
+      height: 600px;
+      overflow: hidden;
+      background: #000000; /* pure black = transparent on the additive display */
+      color: #ffffff;
+      font-family: -apple-system, Roboto, sans-serif;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      padding: 32px;
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 600;
+      color: #ffffff;
+      margin: 0;
+      text-align: center;
+    }
+
+    #status {
+      font-size: 20px;
+      color: #7dd3fc; /* bright accent, visible on additive display */
+      min-height: 28px;
+      text-align: center;
+    }
+
+    .focusable {
+      transition: all 150ms ease;
+      border: 2px solid #444444;
+      background: #111111;
+      color: #ffffff;
+      min-height: 88px;
+      min-width: 280px;
+      font-size: 22px;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+
+    .focusable:focus {
+      outline: none;
+      border-color: #7dd3fc;
+      background: #1a2733;
+      box-shadow: 0 0 0 4px rgba(125, 211, 252, 0.25);
+    }
+  </style>
+</head>
+<body>
+  <h1>Glasses Hello Bridge</h1>
+  <button class="focusable" id="pingButton">Ping native app</button>
+  <div id="status">Press Enter to ping</div>
+
+  <script>
+    const PING_URL = 'http://127.0.0.1:8765/ping';
+
+    const statusEl = document.getElementById('status');
+    const pingButton = document.getElementById('pingButton');
+
+    // Focus the only interactive element immediately so a D-pad "select"
+    // works right away without needing an extra navigation step first.
+    window.addEventListener('load', () => {
+      pingButton.focus();
+    });
+
+    async function doPing() {
+      statusEl.textContent = 'Pinging...';
+      try {
+        const response = await fetch(PING_URL);
+        const text = await response.text();
+        statusEl.textContent = 'Got: ' + text;
+      } catch (err) {
+        statusEl.textContent = 'Failed: ' + err.message;
+      }
+    }
+
+    pingButton.addEventListener('click', doPing);
+
+    // --- D-pad / Neural Band input handling (per MRBD Web Apps guide) ---
+    const DPAD = {
+      UP: 'ArrowUp', DOWN: 'ArrowDown',
+      LEFT: 'ArrowLeft', RIGHT: 'ArrowRight',
+      SELECT: 'Enter', BACK: 'Escape',
+    };
+
+    function moveFocus(direction) {
+      const focusables = Array.from(
+        document.querySelectorAll('.focusable:not([disabled])')
+      );
+      if (!focusables.length) return;
+
+      const idx = focusables.indexOf(document.activeElement);
+      if (idx === -1) {
+        focusables[0].focus();
+        return;
+      }
+
+      const next = (direction === 'up' || direction === 'left')
+        ? (idx > 0 ? idx - 1 : focusables.length - 1)
+        : (idx < focusables.length - 1 ? idx + 1 : 0);
+
+      focusables[next].focus();
+    }
+
+    document.addEventListener('keydown', (e) => {
+      switch (e.key) {
+        case DPAD.UP:     moveFocus('up');    break;
+        case DPAD.DOWN:   moveFocus('down');  break;
+        case DPAD.LEFT:   moveFocus('left');  break;
+        case DPAD.RIGHT:  moveFocus('right'); break;
+        case DPAD.SELECT:
+          if (document.activeElement.classList.contains('focusable')) {
+            document.activeElement.click();
+          }
+          break;
+        default: return;
+      }
+      e.preventDefault();
+    });
+  </script>
+</body>
+</html>
