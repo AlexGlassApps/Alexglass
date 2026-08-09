@@ -80,11 +80,12 @@
 </head>
 <body>
   <h1>Glasses Hello Bridge</h1>
-  <button class="focusable" id="pingButton">Ping native app</button>
+  <button class="focusable" id="pingButton">Ping native app (HTTP)</button>
+  <button class="focusable" id="deepLinkButton">Trigger native app (deep link)</button>
   <div id="status">Press Enter to ping</div>
 
   <script>
-    const PING_URL = 'http://192.168.137.36:8765/ping';
+    const PING_URL = 'http://127.0.0.1:8765/ping';
 
     const statusEl = document.getElementById('status');
     const pingButton = document.getElementById('pingButton');
@@ -122,6 +123,17 @@
     }
 
     pingButton.addEventListener('click', doPing);
+
+    const deepLinkButton = document.getElementById('deepLinkButton');
+    deepLinkButton.addEventListener('click', () => {
+      statusEl.textContent = 'Navigating to deep link...';
+      document.body.classList.remove('result-success', 'result-failure');
+      // If Android intercepts this, the browser tab itself won't navigate
+      // anywhere new — the native app launches/handles it instead. If
+      // nothing happens at all, that's a real result too (tells us the
+      // web app runtime doesn't support this).
+      window.location.href = 'glasseshello://ping';
+    });
 
     // --- D-pad / Neural Band input handling (per MRBD Web Apps guide) ---
     const DPAD = {
